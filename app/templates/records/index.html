@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<!--
+  [DECISION] RECORDS TABLE UI
+  • Add column sorting (requires JS or server-side sort params)
+  • Add bulk delete/export selection checkboxes
+  • Change columns shown in the table
+-->
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-table text-success"></i> Waste Records</h4>
+  <a href="{{ url_for('records.add') }}" class="btn btn-success btn-sm">
+    <i class="bi bi-plus-lg"></i> Log Waste
+  </a>
+</div>
+
+<!-- Filter Bar -->
+<div class="card shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-end">
+      <div class="col-sm-3">
+        <label class="form-label small mb-1">Waste Type</label>
+        <select name="type" class="form-select form-select-sm">
+          <option value="">All Types</option>
+          {% for t in waste_types %}
+          <option value="{{ t.id }}" {% if request.args.get('type')|int == t.id %}selected{% endif %}>
+            {{ t.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label small mb-1">Location</label>
+        <select name="location" class="form-select form-select-sm">
+          <option value="">All Locations</option>
+          {% for l in locations %}
+          <option value="{{ l.id }}" {% if request.args.get('location')|int == l.id %}selected{% endif %}>
+            {{ l.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small mb-1">From</label>
+        <input type="date" name="date_from" class="form-control form-control-sm"
+               value="{{ request.args.get('date_from', '') }}">
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label small mb-1">To</label>
+        <input type="date" name="date_to" class="form-control form-control-sm"
+               value="{{ request.args.get('date_to', '') }}">
+      </div>
+      <div class="col-sm-2 d-flex gap-1">
+        <button type="submit" class="btn btn-success btn-sm w-100">Filter</button>
+        <a href="{{ url_for('records.index') }}" class="btn btn-outline-secondary btn-sm">✕</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Records Table -->
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Waste Type</th>
+            <th>Location</th>
+            <th>Vehicle ID</th>
+            <th>Disposal</th>
+            <th class="text-end">Quantity (kg)</th>
+            <th>Photo</th>
+            <th>Logged By</th>
+            <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records.items %}
+          <tr>
+            <td class="text-muted small">{{ r.id }}</td>
+            <td>{{ r.date_collected }}</td>
+            <td>
+              <span class="badge rounded-pill"
+                    style="background-color:{{ r.waste_type.color }}">
+                {{ r.waste_type.name }}
+              </span>
+            </td>
+            <td>{{ r.location.name }}</td>
+            <td class="small"><i class="bi bi-truck text-muted"></i> {{ r.vehicle_id or '—' }}</td>
+            <td class="small">{{ r.disposal_method or '—' }}</td>
+            <td class="text-end fw-semibold">{{ r.quantity_kg }}</td>
+            <td>
+              {% if r.photo_filename %}
+              <a href="{{ url_for('static', filename='uploads/' ~ r.photo_filename) }}" target="_blank">
+                <img src="{{ url_for('static', filename='uploads/' ~ r.photo_filename) }}"
+                     alt="photo" style="height:36px;width:36px;object-fit:cover;border-radius:4px;">
+              </a>
+              {% else %}
+              <span class="text-muted small">—</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ r.logged_by.username }}</td>
+            <td class="text-center">
+              <a href="{{ url_for('records.edit', record_id=r.id) }}"
+                 class="btn btn-outline-secondary btn-sm py-0">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST"
+                    action="{{ url_for('records.delete', record_id=r.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Delete this record?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm py-0">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="10" class="text-center text-muted py-4">
+              No records found. <a href="{{ url_for('records.add') }}">Log the first one.</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if records.pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination pagination-sm justify-content-center">
+    {% for p in records.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+      {% if p %}
+        <li class="page-item {% if p == records.page %}active{% endif %}">
+          <a class="page-link" href="{{ url_for('records.index', page=p, **request.args) }}">{{ p }}</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

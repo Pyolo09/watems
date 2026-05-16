@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5">
+    <div class="card shadow-sm bg-white">
+      <div class="card-body p-4">
+
+        <!-- Logo (same as login — falls back to icon if file missing) -->
+        <div class="text-center mb-3">
+          <img src="{{ url_for('static', filename='images/logo.png') }}"
+               alt="WasteMS Logo"
+               style="max-height: 70px; object-fit: contain;"
+               onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';">
+          <div id="logoFallback" style="display:none;">
+            <i class="bi bi-recycle text-success" style="font-size: 2.5rem;"></i>
+          </div>
+        </div>
+
+        <h4 class="card-title text-center mb-4">Create Account</h4>
+
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.username.label(class='form-label') }}
+            {{ form.username(class='form-control' + (' is-invalid' if form.username.errors else '')) }}
+            {% for e in form.username.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.email.label(class='form-label') }}
+            {{ form.email(class='form-control' + (' is-invalid' if form.email.errors else ''),
+                          placeholder='you@example.com') }}
+            {% for e in form.email.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.password.label(class='form-label') }}
+            <div class="input-group">
+              {{ form.password(class='form-control' + (' is-invalid' if form.password.errors else ''),
+                               id='regPassword', oninput='checkStrength(this.value)') }}
+              <button class="btn btn-outline-secondary" type="button"
+                      onclick="togglePassword('regPassword', this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            {% for e in form.password.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+
+            <!-- Password rules hint -->
+            <div class="mt-1 small text-muted">
+              Must be at least 6 characters and contain both letters and numbers.
+            </div>
+
+            <!-- Strength bar -->
+            <div class="progress mt-2" style="height:5px;">
+              <div id="strengthBar" class="progress-bar" role="progressbar"
+                   style="width:0%; transition: width 0.3s;"></div>
+            </div>
+            <div id="strengthLabel" class="small mt-1"></div>
+          </div>
+
+          <div class="mb-3">
+            {{ form.confirm_password.label(class='form-label') }}
+            <div class="input-group">
+              {{ form.confirm_password(class='form-control' + (' is-invalid' if form.confirm_password.errors else ''),
+                                       id='regConfirm') }}
+              <button class="btn btn-outline-secondary" type="button"
+                      onclick="togglePassword('regConfirm', this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            {% for e in form.confirm_password.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+          </div>
+
+          {{ form.submit(class='btn btn-success w-100') }}
+        </form>
+
+        <hr>
+        <p class="text-center small mb-0">
+          Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  function togglePassword(fieldId, btn) {
+    const field = document.getElementById(fieldId);
+    const icon  = btn.querySelector('i');
+    if (field.type === 'password') {
+      field.type = 'text';
+      icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+      field.type = 'password';
+      icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+  }
+
+  function checkStrength(val) {
+    const bar   = document.getElementById('strengthBar');
+    const label = document.getElementById('strengthLabel');
+    let score = 0;
+    if (val.length >= 6)                      score++;
+    if (/[A-Za-z]/.test(val))                 score++;
+    if (/[0-9]/.test(val))                    score++;
+    if (val.length >= 10)                     score++;
+    if (/[^A-Za-z0-9]/.test(val))            score++;
+
+    const levels = [
+      { pct: '0%',   cls: '',               text: '' },
+      { pct: '25%',  cls: 'bg-danger',      text: 'Weak' },
+      { pct: '50%',  cls: 'bg-warning',     text: 'Fair' },
+      { pct: '75%',  cls: 'bg-info',        text: 'Good' },
+      { pct: '90%',  cls: 'bg-success',     text: 'Strong' },
+      { pct: '100%', cls: 'bg-success',     text: 'Very Strong' },
+    ];
+    const lvl = levels[score] || levels[0];
+    bar.style.width = lvl.pct;
+    bar.className   = 'progress-bar ' + lvl.cls;
+    label.textContent = lvl.text;
+    label.className = 'small mt-1 ' + (lvl.cls ? lvl.cls.replace('bg-', 'text-') : 'text-muted');
+  }
+</script>
+{% endblock %}

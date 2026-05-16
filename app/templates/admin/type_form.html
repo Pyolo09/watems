@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Add Waste Type</div>
+      <div class="card-body">
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
+          <div class="mb-3">
+            {{ form.name.label(class='form-label') }}
+            {{ form.name(class='form-control') }}
+          </div>
+          <div class="mb-3">
+            {{ form.color.label(class='form-label') }}
+            <!--
+              [DECISION] Replace this text input with a proper color picker:
+              <input type="color" name="color" class="form-control form-control-color">
+            -->
+            {{ form.color(class='form-control', placeholder='#198754') }}
+            <div class="form-text">Hex colour used for badges and charts.</div>
+          </div>
+          <div class="d-flex gap-2">
+            {{ form.submit(class='btn btn-success') }}
+            <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

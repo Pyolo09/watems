@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">
+    <i class="bi bi-bar-chart-line text-success"></i> System-wide Report
+    <small class="text-muted fs-6 ms-1">— Admin View</small>
+  </h4>
+  <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left"></i> Back to Admin
+  </a>
+</div>
+
+<!-- System totals -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Total Records (All Operators)</div>
+        <div class="fs-3 fw-bold text-success">{{ system_total_records }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Total Waste (All Operators)</div>
+        <div class="fs-3 fw-bold text-success">{{ system_total_kg }} kg</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Active Operators</div>
+        <div class="fs-3 fw-bold text-success">
+          {{ operator_stats | selectattr('account_status', 'equalto', 'active') | list | length }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="text-muted small">Suspended Operators</div>
+        <div class="fs-3 fw-bold text-danger">
+          {{ operator_stats | selectattr('account_status', 'equalto', 'suspended') | list | length }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Per-operator totals table -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-white fw-semibold">Operator Totals</div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover table-sm mb-0 align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Operator</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th class="text-end">Records</th>
+            <th class="text-end">Total (kg)</th>
+            <th>Breakdown by Type</th>
+            <th>Breakdown by Disposal</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for op in operator_stats %}
+          {% set badge_cls = 'bg-success' if op.account_status == 'active'
+                        else 'bg-danger'  if op.account_status == 'suspended'
+                        else 'bg-secondary' %}
+          <tr>
+            <td class="fw-semibold">{{ op.username }}</td>
+            <td class="small text-muted">{{ op.email }}</td>
+            <td>
+              <span class="badge {{ badge_cls }}">{{ op.account_status | capitalize }}</span>
+            </td>
+            <td class="text-end">{{ op.total_records or 0 }}</td>
+            <td class="text-end fw-semibold">{{ (op.total_kg or 0) | round(2) }} kg</td>
+
+            <!-- Type breakdown for this operator -->
+            <td class="small">
+              {% for tb in type_breakdown if tb.username == op.username %}
+                <span class="badge rounded-pill me-1"
+                      style="background-color:{{ tb.color }}">
+                  {{ tb.waste_type }}: {{ tb.total_kg | round(1) }} kg
+                </span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endfor %}
+            </td>
+
+            <!-- Disposal breakdown for this operator -->
+            <td class="small">
+              {% for db_row in disposal_breakdown if db_row.username == op.username %}
+                <div>{{ db_row.disposal_method or 'Unspecified' }}:
+                  <strong>{{ db_row.total_kg | round(1) }} kg</strong>
+                </div>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endfor %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center text-muted py-4">No operator data yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Visual: operator comparison bar chart -->
+<div class="card shadow-sm">
+  <div class="card-header bg-white fw-semibold">Operator Comparison (kg)</div>
+  <div class="card-body">
+    <canvas id="operatorChart" style="max-height:320px;"></canvas>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+new Chart(document.getElementById('operatorChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ operator_stats | map(attribute='username') | list | tojson }},
+    datasets: [{
+      label: 'Total Waste (kg)',
+      data: {{ operator_stats | map(attribute='total_kg') | list | tojson }},
+      backgroundColor: 'rgba(25, 135, 84, 0.75)',
+      borderColor: '#198754',
+      borderWidth: 1,
+    }]
+  },
+  options: {
+    scales: { y: { beginAtZero: true, title: { display: true, text: 'kg' } } },
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
+{% endblock %}

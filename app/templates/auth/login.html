@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row justify-content-center mt-5">
+  <div class="col-md-4">
+
+    <!-- Dark mode toggle — only shown here since navbar isn't visible when logged out -->
+    <div class="d-flex justify-content-end mb-2">
+      <button id="darkModeToggle" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-moon-fill" id="darkModeIcon"></i>
+        <span id="darkModeLabel">Dark Mode</span>
+      </button>
+    </div>
+
+    <div class="card shadow-sm bg-white" id="loginCard">
+      <div class="card-body p-4">
+
+        <!-- ─────────────────────────────────────────────────────
+             LOGO
+             Replace the src below with your actual logo file.
+             Place your logo in: app/static/images/logo.png
+             Then change the src to: url_for('static', filename='images/logo.png')
+             ───────────────────────────────────────────────────── -->
+        <div class="text-center mb-3">
+          <img src="{{ url_for('static', filename='images/logo.png') }}"
+               alt="WasteMS Logo"
+               style="max-height: 80px; object-fit: contain;"
+               onerror="this.style.display='none'; document.getElementById('logoFallback').style.display='block';">
+          <div id="logoFallback" style="display:none;">
+            <i class="bi bi-recycle text-success" style="font-size: 3rem;"></i>
+          </div>
+        </div>
+
+        <h4 class="card-title text-center mb-4">Sign In</h4>
+
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.email.label(class='form-label') }}
+            {{ form.email(class='form-control' + (' is-invalid' if form.email.errors else ''),
+                          placeholder='you@example.com') }}
+            {% for e in form.email.errors %}
+              <div class="invalid-feedback">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.password.label(class='form-label') }}
+            <div class="input-group">
+              {{ form.password(class='form-control' + (' is-invalid' if form.password.errors else ''),
+                               id='loginPassword') }}
+              <button class="btn btn-outline-secondary" type="button"
+                      onclick="togglePassword('loginPassword', this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            {% for e in form.password.errors %}
+              <div class="text-danger small">{{ e }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3 form-check">
+            {{ form.remember(class='form-check-input') }}
+            {{ form.remember.label(class='form-check-label') }}
+          </div>
+
+          {{ form.submit(class='btn btn-success w-100') }}
+        </form>
+
+        <hr>
+        <p class="text-center small mb-0">
+          Don't have an account?
+          <a href="{{ url_for('auth.register') }}">Register here</a>
+        </p>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // ── Show/hide password ──────────────────────────────────────
+  function togglePassword(fieldId, btn) {
+    const field = document.getElementById(fieldId);
+    const icon  = btn.querySelector('i');
+    if (field.type === 'password') {
+      field.type = 'text';
+      icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+      field.type = 'password';
+      icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+  }
+</script>
+{% endblock %}

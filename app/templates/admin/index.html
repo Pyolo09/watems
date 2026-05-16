@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0"><i class="bi bi-gear text-success"></i> Admin Panel</h4>
+  <a href="{{ url_for('admin.system_report') }}" class="btn btn-success btn-sm">
+    <i class="bi bi-bar-chart-line"></i> System-wide Report
+  </a>
+</div>
+
+<div class="row g-4">
+
+  <!-- ── Users ─────────────────────────────────────────────── -->
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+        User Accounts
+        <a href="{{ url_for('admin.add_user') }}" class="btn btn-success btn-sm">
+          <i class="bi bi-person-plus"></i> Add User
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0 align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Joined</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              {% set badge_cls, badge_label = u.status_badge() %}
+              <tr>
+                <td class="fw-semibold">{{ u.username }}</td>
+                <td class="small text-muted">{{ u.email }}</td>
+                <td>
+                  <span class="badge {{ 'bg-danger' if u.role == 'admin' else 'bg-secondary' }}">
+                    {{ u.role }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge {{ badge_cls }}">{{ badge_label }}</span>
+                  {% if u.account_status == 'suspended' %}
+                  <a href="{{ url_for('admin.view_suspension', user_id=u.id) }}"
+                     class="ms-1 small text-danger text-decoration-none"
+                     title="View suspension details">
+                    <i class="bi bi-info-circle"></i>
+                  </a>
+                  {% endif %}
+                </td>
+                <td class="small text-muted">{{ u.created_at.strftime('%d %b %Y') }}</td>
+                <td class="text-center">
+                  {% if u.id != current_user.id %}
+                  <div class="btn-group btn-group-sm">
+
+                    <!-- Activate -->
+                    {% if u.account_status != 'active' %}
+                    <form method="POST"
+                          action="{{ url_for('admin.activate_user', user_id=u.id) }}"
+                          class="d-inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-outline-success py-0"
+                              title="Activate account">
+                        <i class="bi bi-check-circle"></i> Activate
+                      </button>
+                    </form>
+                    {% endif %}
+
+                    <!-- Deactivate -->
+                    {% if u.account_status == 'active' %}
+                    <form method="POST"
+                          action="{{ url_for('admin.deactivate_user', user_id=u.id) }}"
+                          class="d-inline"
+                          onsubmit="return confirm('Deactivate {{ u.username }}?')">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-outline-secondary py-0"
+                              title="Deactivate account">
+                        <i class="bi bi-slash-circle"></i> Deactivate
+                      </button>
+                    </form>
+                    {% endif %}
+
+                    <!-- Suspend -->
+                    {% if u.account_status != 'suspended' %}
+                    <a href="{{ url_for('admin.suspend_user', user_id=u.id) }}"
+                       class="btn btn-outline-danger py-0" title="Suspend account">
+                      <i class="bi bi-ban"></i> Suspend
+                    </a>
+                    {% endif %}
+
+                  </div>
+                  {% else %}
+                  <span class="text-muted small fst-italic">You</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Waste Types ────────────────────────────────────────── -->
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+        Waste Types
+        <a href="{{ url_for('admin.add_type') }}" class="btn btn-success btn-sm">
+          <i class="bi bi-plus"></i>
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            {% for t in types %}
+            <tr>
+              <td>
+                <span class="badge rounded-pill" style="background-color:{{ t.color }}">
+                  {{ t.name }}
+                </span>
+              </td>
+              <td class="text-end">
+                <form method="POST"
+                      action="{{ url_for('admin.delete_type', type_id=t.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Delete waste type {{ t.name }}?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-outline-danger btn-sm py-0">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Locations ─────────────────────────────────────────── -->
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+        Locations
+        <a href="{{ url_for('admin.add_location') }}" class="btn btn-success btn-sm">
+          <i class="bi bi-plus"></i>
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+          <tbody>
+            {% for l in locations %}
+            <tr>
+              <td>{{ l.name }}</td>
+              <td class="text-end">
+                <form method="POST"
+                      action="{{ url_for('admin.delete_location', loc_id=l.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Delete location {{ l.name }}?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-outline-danger btn-sm py-0">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

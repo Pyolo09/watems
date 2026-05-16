@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="row justify-content-center">
+  <div class="col-md-7">
+    <div class="card shadow-sm border-danger">
+      <div class="card-header bg-danger text-white fw-semibold d-flex justify-content-between">
+        <span><i class="bi bi-ban"></i> Suspension Record — {{ user.username }}</span>
+        <a href="{{ url_for('admin.index') }}" class="btn btn-sm btn-light text-danger">
+          Back
+        </a>
+      </div>
+      <div class="card-body">
+
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Account</dt>
+          <dd class="col-sm-8">{{ user.username }} ({{ user.email }})</dd>
+
+          <dt class="col-sm-4">Suspended On</dt>
+          <dd class="col-sm-8">
+            {{ user.suspended_at.strftime('%d %B %Y at %H:%M') if user.suspended_at else '—' }}
+          </dd>
+
+          <dt class="col-sm-4">Suspended By</dt>
+          <dd class="col-sm-8">
+            {{ suspended_by.username if suspended_by else '—' }}
+          </dd>
+
+          <dt class="col-sm-4">Reason</dt>
+          <dd class="col-sm-8">
+            <div class="p-2 bg-light rounded border small">
+              {{ user.suspension_reason or '—' }}
+            </div>
+          </dd>
+
+          {% if user.suspension_evidence %}
+          <dt class="col-sm-4 mt-3">Evidence</dt>
+          <dd class="col-sm-8 mt-3">
+            {% set ext = user.suspension_evidence.rsplit('.', 1)[-1].lower() %}
+            {% if ext in ['jpg', 'jpeg', 'png', 'webp'] %}
+              <a href="{{ url_for('static', filename='evidence/' ~ user.suspension_evidence) }}"
+                 target="_blank">
+                <img src="{{ url_for('static', filename='evidence/' ~ user.suspension_evidence) }}"
+                     alt="Suspension evidence"
+                     class="img-thumbnail" style="max-height:240px;">
+              </a>
+            {% else %}
+              <a href="{{ url_for('static', filename='evidence/' ~ user.suspension_evidence) }}"
+                 class="btn btn-outline-secondary btn-sm" target="_blank">
+                <i class="bi bi-file-earmark-pdf"></i> View Document
+              </a>
+            {% endif %}
+          </dd>
+          {% endif %}
+        </dl>
+
+        <hr>
+        <div class="d-flex gap-2">
+          <!-- Activate from here too -->
+          <form method="POST"
+                action="{{ url_for('admin.activate_user', user_id=user.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-success btn-sm">
+              <i class="bi bi-check-circle"></i> Lift Suspension & Activate
+            </button>
+          </form>
+          <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary btn-sm">
+            Cancel
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

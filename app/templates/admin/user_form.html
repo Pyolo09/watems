@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold">Add New User</div>
+      <div class="card-body">
+        <form method="POST" novalidate>
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.username.label(class='form-label') }}
+            {{ form.username(class='form-control') }}
+          </div>
+          <div class="mb-3">
+            {{ form.email.label(class='form-label') }}
+            {{ form.email(class='form-control') }}
+          </div>
+          <div class="mb-3">
+            {{ form.password.label(class='form-label') }}
+            {{ form.password(class='form-control') }}
+          </div>
+          <div class="mb-3">
+            {{ form.confirm_password.label(class='form-label') }}
+            {{ form.confirm_password(class='form-control') }}
+          </div>
+
+          <!-- [DECISION] Role selector — shown only in admin user creation -->
+          <div class="mb-3">
+            <label class="form-label">Role</label>
+            <select name="role" class="form-select">
+              <option value="operator">Operator</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div class="d-flex gap-2">
+            {{ form.submit(class='btn btn-success') }}
+            <a href="{{ url_for('admin.index') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

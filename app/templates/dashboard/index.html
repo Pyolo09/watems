@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">
+    <i class="bi bi-speedometer2 text-success"></i>
+    Dashboard
+    <small class="text-muted fs-6 ms-1">— {{ current_user.username }}</small>
+  </h4>
+  <a href="{{ url_for('records.add') }}" class="btn btn-success btn-sm">
+    <i class="bi bi-plus-lg"></i> Log Waste
+  </a>
+</div>
+
+<!-- ── Hazardous Waste Alert ──────────────────────────────────── -->
+{% if hazardous_alert %}
+<div class="alert alert-danger d-flex align-items-center gap-3 mb-4" role="alert">
+  <i class="bi bi-exclamation-triangle-fill fs-3 flex-shrink-0"></i>
+  <div>
+    <strong>Hazardous Waste Alert</strong> —
+    You have logged <strong>{{ hazardous_kg }} kg</strong> of hazardous waste this month,
+    which exceeds the threshold of <strong>{{ threshold }} kg</strong>.
+    Please review your disposal procedures and notify your supervisor.
+  </div>
+</div>
+{% elif hazardous_kg > 0 %}
+<div class="alert alert-warning d-flex align-items-center gap-2 mb-4 py-2" role="alert">
+  <i class="bi bi-exclamation-circle-fill flex-shrink-0"></i>
+  <div class="small">
+    Hazardous waste this month: <strong>{{ hazardous_kg }} kg</strong>
+    (limit: {{ threshold }} kg —
+    <strong>{{ ((hazardous_kg / threshold) * 100) | round(1) }}%</strong> used).
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Summary Cards ──────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">My Total Records</div>
+        <div class="fs-3 fw-bold text-success">{{ total_records }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">My Total Waste (kg)</div>
+        <div class="fs-3 fw-bold text-success">{{ total_kg }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body">
+        <div class="text-muted small">My Last 30 Days (kg)</div>
+        <div class="fs-3 fw-bold text-warning">{{ recent_kg }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card border-0 shadow-sm h-100
+      {{ 'bg-danger text-white' if hazardous_alert else 'bg-success text-white' }}">
+      <div class="card-body d-flex flex-column justify-content-center">
+        {% if hazardous_alert %}
+          <div class="fw-bold text-center">
+            <i class="bi bi-exclamation-triangle-fill d-block fs-3 mb-1"></i>
+            Hazardous Limit Exceeded
+          </div>
+        {% else %}
+          <a href="{{ url_for('records.add') }}" class="btn btn-light text-success fw-bold">
+            <i class="bi bi-plus-circle"></i> Log New Entry
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts Row ─────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-4">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">My Waste by Type</div>
+      <div class="card-body d-flex align-items-center justify-content-center">
+        <canvas id="typeChart" style="max-height:260px;"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">My Monthly Trend (kg)</div>
+      <div class="card-body">
+        <canvas id="monthChart" style="max-height:260px;"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Location Chart + Recent Records ───────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-lg-5">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold">My Waste by Location (kg)</div>
+      <div class="card-body">
+        <canvas id="locChart" style="max-height:300px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- My recent records -->
+  <div class="col-lg-7">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between">
+        My Recent Entries
+        <a href="{{ url_for('records.index') }}" class="btn btn-outline-success btn-sm">View All</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>Disposal</th>
+                <th class="text-end">kg</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in own_recent %}
+              <tr>
+                <td>{{ r.date_collected }}</td>
+                <td>
+                  <span class="badge rounded-pill"
+                        style="background-color:{{ r.waste_type.color }}">
+                    {{ r.waste_type.name }}
+                  </span>
+                </td>
+                <td>{{ r.location.name }}</td>
+                <td class="small text-muted">{{ r.disposal_method or '—' }}</td>
+                <td class="text-end">{{ r.quantity_kg }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-3">
+                  No records yet. <a href="{{ url_for('records.add') }}">Log one now.</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Other Users' Activity (anonymised) ────────────────────── -->
+{% if other_recent %}
+<div class="row g-3">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-semibold d-flex align-items-center gap-2">
+        <i class="bi bi-people text-muted"></i>
+        System-wide Recent Activity
+        <span class="badge bg-secondary ms-1" style="font-size:0.7rem;">
+          Operators anonymised
+        </span>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>Disposal</th>
+                <th class="text-end">kg</th>
+                <th>Logged By</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in other_recent %}
+              <tr>
+                <td>{{ r.date_collected }}</td>
+                <td>
+                  <span class="badge rounded-pill"
+                        style="background-color:{{ r.waste_type.color }}">
+                    {{ r.waste_type.name }}
+                  </span>
+                </td>
+                <td>{{ r.location.name }}</td>
+                <td class="small text-muted">{{ r.disposal_method or '—' }}</td>
+                <td class="text-end">{{ r.quantity_kg }}</td>
+                <!-- Anonymised — operator identity hidden -->
+                <td class="text-muted small fst-italic">Anonymous</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Waste by Type — Doughnut
+new Chart(document.getElementById('typeChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ type_labels | tojson }},
+    datasets: [{
+      data: {{ type_data | tojson }},
+      backgroundColor: {{ type_colors | tojson }},
+      borderWidth: 2,
+    }]
+  },
+  options: { plugins: { legend: { position: 'bottom' } }, cutout: '60%' }
+});
+
+// Monthly Trend — Bar
+new Chart(document.getElementById('monthChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ month_labels | tojson }},
+    datasets: [{
+      label: 'kg',
+      data: {{ month_data | tojson }},
+      backgroundColor: 'rgba(25, 135, 84, 0.7)',
+      borderColor: '#198754',
+      borderWidth: 1,
+    }]
+  },
+  options: { scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+});
+
+// By Location — Horizontal Bar
+new Chart(document.getElementById('locChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ loc_labels | tojson }},
+    datasets: [{
+      label: 'kg',
+      data: {{ loc_data | tojson }},
+      backgroundColor: 'rgba(13, 202, 240, 0.7)',
+      borderColor: '#0dcaf0',
+      borderWidth: 1,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    scales: { x: { beginAtZero: true } },
+    plugins: { legend: { display: false } }
+  }
+});
+</script>
+{% endblock %}
