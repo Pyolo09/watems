@@ -41,8 +41,25 @@ def create_app(config_class=Config):
     with app.app_context():
         db.create_all()
         _seed_defaults()
+        _seed_admin()
 
     return app
+
+
+def _seed_admin():
+    """Create the admin user automatically on first deploy if not exists."""
+    from app.models import User
+    existing = User.query.filter_by(email='olajuwonolamide70@gmail.com').first()
+    if not existing:
+        admin = User(
+            username='admin',
+            email='olajuwonolamide70@gmail.com',
+            role='admin',
+            account_status='active'
+        )
+        admin.set_password('password')
+        db.session.add(admin)
+        db.session.commit()
 
 
 def _seed_defaults():
